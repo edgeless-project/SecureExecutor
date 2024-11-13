@@ -1,0 +1,9 @@
+[package]
+name = "sysinfo"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+hyper = { version = "0.14", features = ["full"] } # Enable all features for hyper
+tokio = { version = "1", features = ["full"] }    # Full support for async operations
+sysinfo = { version = "0.30.12", features = ["default"] }

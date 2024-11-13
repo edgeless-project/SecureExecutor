@@ -1,0 +1,8 @@
+[package]
+name = "sysinfo_test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sysinfo = { path = "../../sysinfo" }
+#sysinfo = "0.32.0"

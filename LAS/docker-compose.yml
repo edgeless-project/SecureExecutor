@@ -1,0 +1,13 @@
+version: '3.2'
+services:
+    las:
+        image: registry.scontain.com/sconecuratedimages/las
+        devices:
+          - "/dev/sgx_enclave:/dev/sgx_enclave"
+        restart: on-failure
+        privileged: true
+        ports:
+          - target: 18766
+            published: 18766
+            protocol: tcp
+            mode: host

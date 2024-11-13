@@ -1,0 +1,209 @@
+#!/bin/bash
+
+# SPDX-FileCopyrightText: © 2024 Technical University of Crete
+# SPDX-License-Identifier: MIT
+
+source ./src/log.sh
+source ./src/scone.sh
+source ./src/lambdas.sh
+source ./src/apps.sh
+
+# exit on error
+#set -e
+
+# Input arguments will be stored here
+LAMBDA_NAME=""
+TARGET=""
+TAG_NAME=""
+ENV_VARS=""
+VOL_PATH=""
+STATIC_DYNAMIC_BUILD="static"
+
+# Flags to indicate what actions need to be done
+NEW_LAMBDA=false
+BUILD_IMAGE=false
+RUN_CONTAINER=false
+CLEANUP=false
+
+# Indicate if we should rebuild all images even though they exist
+FORCE_BUILD_IMAGES=false
+
+# ===============================================================================================
+
+function build_rust_env(){
+    # IMPORTANT! DO NOT MODIFY this image name, because Dockerfile/apps/ images depend on this!
+    build_image "rust_build_env" "Dockerfiles/apps-base-images/rust-build-env.Dockerfile"
+}
+
+# -------------------------------------------------
+# HELP MENU
+# -------------------------------------------------
+
+function help_menu(){
+    echo "Usage: $0 [Option]... [Option]... "
+    echo "Usage: $0 --build --edgeless-node"
+    echo "Usage: $0 --new --lambda-name hello --cpp"
+    echo "Usage: $0 --python --lambda-name function2 --build --run --clean"
+    echo ""
+    echo "Options:"
+    echo "  -b, --build                         Use this flag to build the target image from the given lambda function (or edgeless-node sources)"
+    echo "  -c, --clean                         Clean the generated image (this requires to give the lambda function name you want to clean)"
+    echo "  -d, --dynamic                       In case you want to dynamically link your executable use this flag (this produces smaller in size images TBI)"
+    echo "  -e, --env-var var                   You can use this, to pass multiple ENV vars during 'docker run ..'"
+    echo "  -g, --tag tag_name                  If you want to provide an optional tag for your image, do it using this flag"
+    echo "  -h, --help                          Print this help menu and exit"
+    echo "  -l, --lambda-name lambda_name       Select lambda function you want to build or run"
+    echo "  -n, --new                           Use this flag if you want to create a new lambda function"
+    echo "  -v, --volume absolute_path          If you want to bind mound a directory use this option (MUST provide an absolute path)"
+    echo "  -r, --run                           Pass this flag to run a container"
+    echo "  -s, --static                        In case you want to statically link your executable use this flag (this produces larger in size images, default operation)"
+    
+    echo "      --build-from-dockerimage path   Use a Dockerfile as target"
+    echo "      --run-from-dockerimage path     Use a Dockerfile (need to build it first) as target"
+    echo "      --edgeless-system               Use as a target the whole edgeless system"
+    echo "      --edgeless-node                 Use the edgeless node as target"
+    echo "      --cpp                           Use a cpp lambda function as target"
+    echo "      --python                        Use a python lambda function as target"
+    echo "      --rust                          Use a rust lambda function as target"
+}
+
+# ===============================================================================================
+# ===============================================================================================
+# ===============================================================================================
+#                                    __  __       _       
+#                                   |  \/  | __ _(_)_ __  
+#                                   | |\/| |/ _` | | '_ \ 
+#                                   | |  | | (_| | | | | |
+#                                   |_|  |_|\__,_|_|_| |_|
+# 
+# ===============================================================================================
+# ===============================================================================================
+# ===============================================================================================
+
+# -------------------------------------------------
+# Parse input parameters
+# -------------------------------------------------
+while :
+do
+    case "$1" in
+        -b | --build)           BUILD_IMAGE=true                        ;;
+        -c | --clean)           CLEANUP=true                            ;;
+        -d | --dynamic)         STATIC_DYNAMIC_BUILD="dynamic"          ;;
+        -e | --env-var)         ENV_VARS+="-e $2 ";             shift   ;;
+        -g | --tag)             TAG_NAME=$2;                    shift   ;;
+        -h | --help)            help_menu;                      exit 0  ;;
+        -l | --lambda-name)     LAMBDA_NAME=$2;                 shift   ;;
+        -n | --new)             NEW_LAMBDA=true;                        ;;
+        -r | --run)             RUN_CONTAINER=true                      ;;
+        -s | --static)          STATIC_DYNAMIC_BUILD="static"           ;;
+        -v | --volume)          VOL_PATH=$2;                    shift   ;;
+
+             --build-from-dockerimage) project_build_from_dockerimage $2;;
+             --run-from-dockerimage) project_run_from_dockerimage $2    ;;
+             --edgeless-node)   TARGET="edgeless-node"                  ;;
+             --edgeless-system) TARGET="edgeless-system"                ;; 
+             --python)          TARGET="python"                         ;;
+             --cpp)             TARGET="cpp"                            ;;
+             --rust)            TARGET="rust"                           ;;
+        --*)
+            echo "Unknown option: $1" >&2
+            help_menu
+            exit 1
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            help_menu
+            exit 1 
+            ;;
+        *) 
+            break
+    esac
+    shift
+done
+
+# -------------------------------------------------
+# Check input parameters 
+# If we have all needed parameters etc.
+# -------------------------------------------------
+
+# 1. Check given target
+if [ -z $TARGET ];  then echo_r "'target' cannot be empty! Select one of them (--cpp, --python, --rust or --edgeless-node)'" ; exit 1 ;
+elif [ $TARGET == "edgeless-node" ]; then LAMBDA_NAME="edgeless-node";
+elif [ $TARGET == "edgeless-system" ]; then LAMBDA_NAME="edgeless-system"; fi
+
+# 2. Check given lambda function
+if [ -z $LAMBDA_NAME ];  then echo_r "'lambda name' cannot be empty!"   ; help_menu ; exit 1 ; fi
+
+# 3. Create target image name
+[ $TARGET == "edgeless-node" ] && image_name="edgeless-node" || image_name="secureexecutor-lambda-${TARGET}-${STATIC_DYNAMIC_BUILD}-${LAMBDA_NAME}"
+[ $TARGET == "edgeless-system" ] && image_name="edgeless-system" || image_name="secureexecutor-lambda-${TARGET}-${STATIC_DYNAMIC_BUILD}-${LAMBDA_NAME}"
+
+# 4. Append if needed also a tag for the image
+[ -z $TAG_NAME ] && image_name=${image_name} || image=${image_name}:${TAG_NAME}
+
+# -------------------------------------------------
+# CREATE NEW LAMBDA
+# -------------------------------------------------
+
+if ${NEW_LAMBDA} ; then 
+    # Create new project
+    if [ $TARGET == "cpp" ] ; then
+        create_template_project $TARGET
+        echo "  > Update ./lambdas/${TARGET}/${LAMBDA_NAME}/lamda_function.cpp file to implement your lambda"   # Display debug message
+        sed -i "s/lambda_sample/${LAMBDA_NAME}/g" ./lambdas/${TARGET}/${LAMBDA_NAME}/CMakeLists.txt             # Set correct project name in CMakeLists
+    elif [ $TARGET == "python" ] ; then
+        create_template_project $TARGET
+        echo "  > Update ./lambdas/${TARGET}/${LAMBDA_NAME}/lamda_function.py file to implement your lambda"    # Display debug message
+    elif [ $TARGET == "rust" ] ; then
+        create_template_project $TARGET
+        echo "  > Update ./lambdas/${TARGET}/${LAMBDA_NAME}/lamda_function.py file to implement your lambda"    # Display debug message
+        sed -i "s/lambda_function/${LAMBDA_NAME}/g" ./lambdas/${TARGET}/${LAMBDA_NAME}/Cargo.toml               # Set correct project name in Cargo.toml
+    fi
+fi
+
+# -------------------------------------------------
+# BUILD IMAGE
+# -------------------------------------------------
+
+# If we have enabled build flag (-b) then build image
+if ${BUILD_IMAGE} ; then 
+    if [ $TARGET == "edgeless-node" ] ;  then   # FIXME: remove this hardcoded implementation from here
+        build_edgeless_node
+    elif [ $TARGET == "edgeless-system" ] ;  then # FIXME: remove this hardcoded implementation from here
+        build_rust_env
+        build_edgeless_system_image
+    elif [ $TARGET == "python" ] ;  then
+        if [ ! -e "./lambdas/${TARGET}/${LAMBDA_NAME}" ] ; then  echo_r "Please create first the lambda function!" ; exit 0; fi
+        build_python_image "${LAMBDA_NAME}" "${image_name}"
+    elif [ $TARGET == "cpp" ] ;  then
+        if [ ! -e "./lambdas/${TARGET}/${LAMBDA_NAME}" ] ; then  echo_r "Please create first the lambda function!" ; exit 0; fi
+        build_cpp_image "${LAMBDA_NAME}" "${image_name}" "${STATIC_DYNAMIC_BUILD}"
+    elif [ $TARGET == "rust" ] ;  then
+        if [ ! -e "./lambdas/${TARGET}/${LAMBDA_NAME}" ] ; then  echo_r "Please create first the lambda function!" ; exit 0; fi
+        build_rust_image "${LAMBDA_NAME}" "${image_name}"
+    fi
+fi
+
+# -------------------------------------------------
+# RUN CONTAINER
+# -------------------------------------------------
+
+# If we have enabled run flag (-r) then also run the container
+if ${RUN_CONTAINER} ; then 
+    if [ $TARGET == "edgeless-node" ] ;  then
+        run_edgeless_node
+    elif [ $TARGET == "edgeless-system" ] ;  then
+        docker run -it --rm --network=edgeless_network --name edgeless_system -w /home/user/edgeless/target/debug -p 7011:7011 -p 7001:7001 edgeless_system bash -c "./run_edgeless_system.sh"
+    else
+        run_container "${LAMBDA_NAME}" "${image_name}"
+    fi
+fi
+
+# -------------------------------------------------
+# CLEAN UP
+# -------------------------------------------------
+
+# If we have enabled clean flag (-c) then clean any generated images/containers
+if ${CLEANUP} ; then 
+    cleanup "${image_name}"
+fi
