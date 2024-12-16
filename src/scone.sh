@@ -3,6 +3,8 @@
 # SPDX-FileCopyrightText: © 2024 Technical University of Crete
 # SPDX-License-Identifier: MIT
 
+source ./src/log.sh
+
 export RUST_TRUSTED_BIN_RT_IMG="registry.scontain.com/sconecuratedimages/crosscompilers:ubuntu20.04-scone5.9.0"
 
 # export GDB_DBG_FLAGS="--cap-add SYS_PTRACE"
@@ -43,16 +45,16 @@ function sconify_execuble(){
     echo_y "-  exec_name: ${exec_name}"
     echo_y "-  exec_dir_cont: ${exec_dir_cont}"
 
-    docker  run --rm -it\
+    exec_cmd docker  run --rm -it \
                 --platform linux/amd64 \
-                -v ${exec_dir_host}:${exec_dir_cont} \
-                -w=${exec_dir_cont} \
+                ${MOUNT_SGXDEVICE:+"$MOUNT_SGXDEVICE"} \
+                -v "${exec_dir_host}":"${exec_dir_cont}" \
+                -w="${exec_dir_cont}" \
                 --network=host \
-                -u $(id -u $USER):$(id -g $USER) \
-                ${GDB_DBG_FLAGS} \
-                $MOUNT_SGXDEVICE \
+                -u "$(id -u "$USER")":"$(id -g "$USER")" \
+                ${GDB_DBG_FLAGS:+"$GDB_DBG_FLAGS"} \
                 --add-host=host.docker.internal:host-gateway \
-                ${RUST_TRUSTED_BIN_RT_IMG} \
+                "${RUST_TRUSTED_BIN_RT_IMG}" \
                 sh -c "scone-signer sign --sconify --syslibs 1 ./${exec_name}"
     echo_g "Process Completed! ('${exec_path}' is now a secure executable)"
 }

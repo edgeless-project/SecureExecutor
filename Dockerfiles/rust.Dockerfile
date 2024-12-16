@@ -20,4 +20,4 @@ COPY ${PROJECT_DIR} ${CONTAINER_PROJECT_DIR}/.
 WORKDIR ${CONTAINER_PROJECT_DIR}
 RUN scone cargo build --target=x86_64-scone-linux-musl
 
-CMD scone cargo run
+CMD ["scone", "cargo", "run"]

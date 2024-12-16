@@ -1,8 +1,9 @@
 FROM secureexecutor-app-base:ubuntu
 
 # Download app and preparation
+WORKDIR /app
 RUN git clone https://github.com/7thSamurai/steganography.git
-WORKDIR steganography/
+WORKDIR /app/steganography/
 RUN mkdir build
 
 # Build
@@ -11,4 +12,4 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release ..
 RUN make -j 4
 
 # Run
-CMD ./steganography encode -i ../data/orig.png -e ../data/jekyll_and_hyde.zip -o output.png
+CMD ["./steganography", "encode", "-i", "../data/orig.png", "-e", "../data/jekyll_and_hyde.zip", "-o", "output.png"]

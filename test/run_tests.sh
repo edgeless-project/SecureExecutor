@@ -5,61 +5,78 @@
 
 source ./src/log.sh
 
-SUCCEED_TESTS=0
-FAILED_TESTS=0
-TOTAL_TESTS=1
+# Test statistics
+SUCCEED_TESTS=()
+FAILED_TESTS=()
+TOTAL_TESTS_CNT=1
+
 function test(){
-    echo_y "* ${CLR_YELLOW}[${TOTAL_TESTS}. NEW TEST]:${CLR_RST} $@"
-    "$@" 
-    if [[ $? -eq 0 ]] ; then 
-        echo_g "====> [SUCCEED] ${@}"
-        SUCCEED_TESTS=$((SUCCEED_TESTS + 1))
+    echo_y "* ${CLR_YELLOW}[${TOTAL_TESTS_CNT}. NEW TEST]:${CLR_RST} $*"
+     
+    if "$@" ; then 
+        echo_g "====> [SUCCEED] ${*}"
+        SUCCEED_TESTS+=("${*}")
     else 
-        echo_r "====? [FAILED] ${@}" 
-        FAILED_TESTS=$((FAILED_TESTS + 1))
+        echo_r "====? [FAILED] ${*}" 
+        FAILED_TESTS+=("${*}")
     fi
-    TOTAL_TESTS=$((TOTAL_TESTS + 1))
+    TOTAL_TESTS_CNT=$((TOTAL_TESTS_CNT + 1))
     echo
     echo "--------------------------------------------------------------------"
     echo
 }
 
 function run_all_tests(){
-    echo_y "============ LOCATE ALL TESTS ============"
-    # If you want, you can only pass a single file to run tests
+    echo_y "============ LOCATE ALL TEST FILES ============"
+    # If you want, you can only pass specific files to run tests
     if [[ $# -gt 0 ]] ; then
-        test_files="$@"
+        test_files=("$*")
     # Else run all tests
     else 
-        test_files=$(find ./test -name "*.sh" | grep -v run_tests.sh)
+        test_files=($(find ./test -name "*.sh" | grep -v run_tests.sh))
     fi
 
     echo "> Test files found:"
-    echo "${test_files}" | tr ' ' '\n'
-    for test_file in ${test_files} ; do
-        source ${test_file}
+    i=1
+    for test_file in ${test_files[@]} ; do
+        # shellcheck disable=SC1090
+        source "${test_file}"
+        echo "   $i) ${test_file}"
+        ((i++))
     done
-
     echo 
     echo 
+    
     echo_y "============ LOCATE TEST FUNCTIONS ============"
-    test_functions=$(cat $test_files | grep -v "#" | grep function | cut -d' ' -f2 | cut -d'(' -f1 )
+    test_functions=($(cat ${test_files[*]} | grep -v "#" | grep function | cut -d' ' -f2 | cut -d'(' -f1 ))
     echo "> Test functions found:"
-    echo "${test_functions}" | tr ' ' '\n'
+    i=1
+    for func in "${test_functions[@]}" ; do
+        echo "   $i) ${func}"
+        ((i++))
+    done
+    echo 
+    echo 
 
-    echo 
-    echo 
     echo_y "============ RUN ALL TESTS ============"
-    for func in ${test_functions} ; do
-        test $func 
+    for func in "${test_functions[@]}" ; do
+        test "$func" 
     done
 
     echo 
     echo 
     echo_y "============ STATISTICS ============"
-    echo_g "- NUMBER OF SUCCEED TESTS: ${SUCCEED_TESTS}"
-    echo_r "- NUMBER OF FAILED TESTS:  ${FAILED_TESTS}"
-    echo   "- TOTAL NUMBER OF TESTS:   $(( ${TOTAL_TESTS} - 1 ))"
+    echo_g "- NUMBER OF SUCCEED TESTS: ${#SUCCEED_TESTS[@]}"
+    for i in "${SUCCEED_TESTS[@]}" ; do
+        echo_g "   * ${i}()"
+    done
+    echo_r "- NUMBER OF FAILED TESTS:  ${#FAILED_TESTS[@]}"
+    for i in "${FAILED_TESTS[@]}" ; do
+        echo_r "   * ${i}()"
+    done
+    echo   "- TOTAL NUMBER OF TESTS:   $(( TOTAL_TESTS_CNT - 1 ))"
+
+    exit ${#FAILED_TESTS[@]}
 }
 
-run_all_tests $@
+run_all_tests "$@"

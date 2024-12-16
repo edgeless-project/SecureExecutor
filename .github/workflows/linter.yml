@@ -1,0 +1,32 @@
+name: Lint using super-linter
+
+on:
+  push:
+    branches: [main, secure-executor]
+  pull_request:
+    branches: [main, secure-executor]
+
+jobs:
+  lint:
+    name: Super-Linter
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read 
+      packages: read
+      statuses: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Super-linter
+        uses: super-linter/super-linter@v5.7.2
+        env:
+          IGNORE_GITIGNORED_FILES: true
+          # Validate only SecureExecutor sources, not sysinfo/templates/etc
+          FILTER_REGEX_EXCLUDE: "./(sysinfo|template|Dockerfiles)/*"
+          FIX_MARKDOWN_PRETTIER: false
+          DISABLE_ERRORS: true

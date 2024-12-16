@@ -5,6 +5,7 @@
 
 source ./src/utils.sh
 source ./src/scone.sh
+source ./src/edgeless-function.sh
 
 BUILD_MODE="PRODUCTION"
 # BUILD_MODE="DEVELOPMENT"
@@ -20,24 +21,24 @@ BUILD_MODE="PRODUCTION"
 # This means, that most of the functions are the same, but these that do not behave as needed
 # will retrieve from an external application the info
 function sysinfo_workaround_server_start(){    sysinfo_workaround_server_stop
-    cd ./sysinfo_untrusted/sysinfo_server
-    echo "Build sysinfo untrusted server (sysinfo workaround)..."
+    pushd ./sysinfo_untrusted/sysinfo_server > /dev/null || exit
+    echo_y "- [SYSINFO WORKAROUND] Build sysinfo untrusted server (sysinfo workaround)..."
     cargo build
     ./target/debug/sysinfo &
     export SYSINFO_PID=$!
-    echo "Untrusted server started [PID: ${SYSINFO_PID}]"
-    cd - &> /dev/null
+    echo_y "- [SYSINFO WORKAROUND] Untrusted server started [PID: ${SYSINFO_PID}]"
+    popd > /dev/null || exit
 }
 
 function sysinfo_workaround_server_stop(){
     # Kill server
-    echo "Kill sysinfo untrusted servers (if exist)"
-    bash -c "kill -9 $(ps aux | grep sysinfo | grep -v grep | tr -s ' ' | cut -d' ' -f2) &> /dev/null"
+    echo_y "- [SYSINFO WORKAROUND] Kill sysinfo untrusted servers (if exist)"
+    bash -c "pkill -f ./target/debug/sysinfo"
 }
 # ===============================================================================================================
 
 function remove_edgeless_node_image(){
-    docker image rm $(docker image ls  | grep edgeless_node | tr -s ' ' | cut -d' ' -f3)
+    docker image rm "$(docker image ls  | grep edgeless_node | tr -s ' ' | cut -d' ' -f3)" &> /dev/null
 }
 
 function build_edgeless_node_image_prod(){
@@ -46,7 +47,7 @@ function build_edgeless_node_image_prod(){
 
 function build_edgeless_node_image_dev(){
     remove_edgeless_node_image
-    build_image "edgeless_node" "Dockerfiles/apps/edgeless-node.Dockerfile --build-arg EDGELESS_BUILD_MODE=dev"
+    build_image "edgeless_node" "Dockerfiles/apps/edgeless-node.Dockerfile" "--build-arg EDGELESS_BUILD_MODE=dev"
 }
 
 function build_edgeless_system_image(){
@@ -59,7 +60,7 @@ function copy_edgeless_node_executable(){
 
     # Copy files
     echo_y "- [CREATE EDGELESS_NODE DIR] Create edgeless_node directory and copy files there..."
-    docker  run -it --rm -v `pwd`/edgeless_node/:/home/user/edgeless_node/ -w=/home/user/edgeless -u $(id -u $USER):$(id -g $USER) --net=host edgeless_node \
+    exec_cmd docker run -it --rm -v "$(pwd)"/edgeless_node/:/home/user/edgeless_node/ -w=/home/user/edgeless -u "$(id -u "$USER")":"$(id -g "$USER")" --net=host edgeless_node \
             sh -c "\
                 cp /home/user/edgeless/target/debug/edgeless_node_d /home/user/edgeless_node/edgeless_node_d && \
                 /home/user/edgeless_node/edgeless_node_d -t /home/user/edgeless_node/node.toml"
@@ -68,9 +69,13 @@ function copy_edgeless_node_executable(){
 function build_edgeless_node(){
     sysinfo_workaround_server_start
     build_rust_env
-    [[ ${BUILD_MODE} == "PRODUCTION" ]] && build_edgeless_node_image_prod || build_edgeless_node_image_dev 
+    if [[ ${BUILD_MODE} == "PRODUCTION" ]]; then
+        build_edgeless_node_image_prod
+    else
+        build_edgeless_node_image_dev
+    fi
     copy_edgeless_node_executable
-    sconify_execuble "`pwd`/edgeless_node/edgeless_node_d"
+    sconify_execuble "$(pwd)/edgeless_node/edgeless_node_d"
     sysinfo_workaround_server_stop
 }
 
@@ -83,14 +88,15 @@ function run_edgeless_node(){
     determine_sgx_device
 
     # Run docker container
-    docker  run --rm -it \
+    exec_cmd docker  run --rm -it \
             --platform linux/amd64 \
-            -v `pwd`/edgeless_node:/work \
+            -v "$(pwd)"/edgeless_node:/work \
             -w=/work \
-            ${GDB_DBG_FLAGS} \
-            -u $(id -u $USER):$(id -g $USER) \
+            ${GDB_DBG_FLAGS:+"$GDB_DBG_FLAGS"} \
+            -u "$(id -u "$USER")":"$(id -g "$USER")" \
             --network=host \
-            $MOUNT_SGXDEVICE \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            ${MOUNT_SGXDEVICE:+"$MOUNT_SGXDEVICE"} \
             ${RUST_TRUSTED_BIN_RT_IMG} \
             sh -c "SCONE_VERSION=1 SCONE_MODE=hw RUST_LOG=info SCONE_LOG=FATAL SCONE_HEAP=1G SCONE_RUST_BACKTRACE=FULL ./edgeless_node_d"
     

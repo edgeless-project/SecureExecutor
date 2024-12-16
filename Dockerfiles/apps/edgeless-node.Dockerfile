@@ -25,18 +25,16 @@ FROM rust_base AS edgeless-node-dev
 COPY ./edgeless/ /home/user/edgeless/
 
 # ====================================================================
-# 2) Production (Download edgeless sources from EDGELESS repo, build binary upon a release version) 
+# 2) Production (Download edgeless sources from EDGELESS repo) 
 # ====================================================================
 FROM rust_base AS edgeless-node-prod
 WORKDIR /home/user/
-RUN wget https://github.com/edgeless-project/edgeless/archive/refs/tags/d4.2-intermediate.zip
-RUN unzip d4.2-intermediate.zip
-RUN mv edgeless-d4.2-intermediate edgeless
+RUN git clone https://github.com/edgeless-project/edgeless.git
 
 # ====================================================================
 # 3) In either case (prod or dev mode) build the project 
 # ====================================================================
-FROM edgeless-node-${EDGELESS_BUILD_MODE} as edgeless_node
+FROM edgeless-node-${EDGELESS_BUILD_MODE} AS edgeless_node
 
 # Move to edgeless dir and build edgeless node
 WORKDIR /home/user/edgeless/edgeless_node

@@ -34,4 +34,4 @@ RUN cmake ..
 RUN make
 
 # Run executable
-CMD ./executable
+CMD ["./executable"]

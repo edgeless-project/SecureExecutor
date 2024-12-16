@@ -1,0 +1,69 @@
+name: Run SecureExecutor Tests
+
+on:
+  # Run this workflow on every push to the main or secure-executor branch
+  push:
+    branches: [main, secure-executor]
+  
+  # Or on new pull requests to the main or secure-executor branch
+  pull_request:
+    branches: [main, secure-executor]
+  
+  # Also run it every week on Sunday at 00:00 UTC
+  # This will ensure that updates on the following repos are in sync with this repo
+  # 1. https://github.com/edgeless-project/edgeless.git
+  # 2. https://github.com/edgeless-project/runtime-python.git
+  # Since, SecureExecutor clones code from there in order to work
+  # schedule:
+  #   - cron: "0 0 * * 0"
+
+jobs:
+  secure-executor-tests:
+    name: Run SecureExecutor Tests and set CI status
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Checkout the repository
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Step 2: Install dependencies
+    - name: Install Rust
+      uses: moonrepo/setup-rust@v1
+
+    # Step 3: Enable simulation mode on SCONE, since the tests could not be executed in hardware SGX machine
+    - name: Enable SCONE simulation mode
+      run: grep -rl 'SCONE_MODE' ./ | xargs sed -i 's/SCONE_MODE=hw/SCONE_MODE=sim/g'
+
+    # Step 4: Set execute permissions for the script (if not already executable)
+    - name: Make script executable
+      run: chmod +x ./test/run_tests.sh
+
+    # Step 5: Login to SCONE
+    - name: Login to SCONE
+      uses: docker/login-action@v3
+      with:
+        registry: registry.scontain.com
+        username: ${{ secrets.ACCOUNT_USERNAME }}
+        password: ${{ secrets.ACCOUNT_TOKEN }}
+
+    # Step 6: Install grpcio-tools
+    - name: Install grpcio-tools (Required for edgeless python function)
+      run: pip3 install grpcio-tools
+
+    # Step 7: Run the test script
+    - name: Run Tests
+      id: run_tests
+      continue-on-error: false
+      run: |
+        ./test/run_tests.sh
+
+    # Step 8: Report status based on script exit code
+    # (GitHub Actions automatically fails the job if the script exits with a non-zero code)
+    - name: CI Status
+      if: success()
+      run: echo "✅ All tests passed!"
+      
+    - name: CI Status
+      if: failure()
+      run: echo "❌ Tests failed!" && exit 1

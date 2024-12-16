@@ -77,7 +77,7 @@ tmux select-pane -t 2
 tmux send-keys "PS1='> CLI: '" C-m
 tmux send-keys "clear" C-m
 tmux send-keys "echo ${ETH_IP}" C-m
-tmux send-keys 'UUID=$(./edgeless_cli workflow start ../../examples/noop/workflow.json)'
+tmux send-keys "UUID=$(./edgeless_cli workflow start ../../examples/noop/workflow.json)"
 tmux select-pane -t 2 -T 'CLI'
 
 tmux select-window -t "EDGELESS"

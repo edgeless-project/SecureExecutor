@@ -7,14 +7,13 @@
 CLR_RED='\033[0;31m'
 CLR_GREEN='\033[0;32m'
 CLR_YELLOW='\033[0;33m'
-CLR_BOLD_WHITE='\033[1;37m'
 CLR_RST='\033[0m'
 
 # DEBUG prints
-function echo_r(){ echo -e "${CLR_RED}$@${CLR_RST}"; }
-function echo_g(){ echo -e "${CLR_GREEN}$@${CLR_RST}"; }
-function echo_y(){ echo -e "${CLR_YELLOW}$@${CLR_RST}"; }
-function exec(){
+function echo_r(){ echo -e "${CLR_RED}$*${CLR_RST}"; }
+function echo_g(){ echo -e "${CLR_GREEN}$*${CLR_RST}"; }
+function echo_y(){ echo -e "${CLR_YELLOW}$*${CLR_RST}"; }
+function exec_cmd(){
     export PS4='> '
     set -x
     "$@"

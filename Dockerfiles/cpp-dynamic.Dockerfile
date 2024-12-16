@@ -19,4 +19,4 @@ WORKDIR ${CONTAINER_PROJECT_DIR}/
 COPY ${PROJECT_DIR}/build/* .
 
 # Run executable
-CMD ./executable
+CMD ["./executable"]
