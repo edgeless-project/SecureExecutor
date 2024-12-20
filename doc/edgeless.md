@@ -157,3 +157,46 @@ Not all parts of sysinfo code have been tested yet.
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
+
+### Examples started when edgeless_node executed in TEE
+Edgeless is shipped with a script automatically running workflows, titled
+[run_all_examples.sh](https://github.com/edgeless-project/edgeless/blob/main/scripts/run_all_examples.sh). During the experiments, this script was used to run all the non-specialized workflows.
+
+#### Steps followed
+1. Run `Redis` as required from `tutorial-01` example.
+2. Follow the `dda_test` workflow scripts to set up your system (scripts that start `EDGELESS` components are not needed to be executed in this case).
+3. Start `ε-CON` & `ε-ORC` on machine A.
+4. Utilize `SecureExecutor` to start the trusted `edgeless_node` on a NUC device.
+5. For the purposes of this test, the [run_all_examples.sh](https://github.com/edgeless-project/edgeless/blob/main/scripts/run_all_examples.sh) script was minimally modified. By default, it creates from scratch configuration files and starts the EDGELESS components, but in this case, these parts were commented out to only facilitate the examples part.
+
+Bellow, a screenshot during the experiment is taken.
+
+![img/edgeless-imgs/SecureExecutor-running-test-workflows.png](img/edgeless-imgs/SecureExecutor-running-test-workflows.png)
+
+From this screenshot the following parts are visible:
+* The docker containers currently running:
+  * A trusted version of the `edgeless_node` is running in a container.
+  * A `Redis` container, related to tutorial-01.
+  * An `Eclipse Moscito` container, related to dda_test.
+
+* Three panes are also available, one for each EDGELESS component.
+  * `ε-ORC`
+  * `ε-CON`
+  * `SecureExecutor` who is running the `edgeless_node`.
+
+* One pane for the `DDA`.
+* A pane that is running the `run_all_examples.sh` script along its results.
+
+The script executed the following examples:
+* `bench_mapreduce/workflow-mapreduce-only`
+* `bench_mapreduce/workflow-mapredece-process`
+* `dda_test`
+* `file_log`
+* `http_egress`
+* `http_ingress`
+* `noop`
+* `ping_pong_async`
+* `ping_pong`
+* `simple_workflow_http`
+* `tutorial-01`
+

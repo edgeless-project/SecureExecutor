@@ -6,11 +6,12 @@ $SecureExecutor$ supports the creation, execution, and deletion of trusted image
 
 1. Create a template to store C++ code. In order to create a new lambda function named `hello`, we can run the following command.
 ```bash
-./SecureExecutor    --cpp \
-                    --lambda-name hello\
+./SecureExecutor    --lambda \
+                    --cpp \
+                    --function-name hello \
                     --new
 ```
-*IMPORTANT*: All generated lambdas will be stored in a new directory titled `.lambdas/{programming-language}/{lambda-name}`.
+*IMPORTANT*: All generated lambdas will be stored in a new directory titled `.lambdas/{programming-language}/{function-name}`.
 
 The following project tree will be created in this case within the specified relative path `./lambdas/cpp/hello/`.
 
@@ -42,11 +43,12 @@ You can also utilize external libraries (e.g., by using the FetchContent package
 2. Once you have implemented the required function, build the secure image.
 
 ```bash
-./SecureExecutor    --cpp \
-                    --lambda-name hello \
+./SecureExecutor    --lambda \
+                    --cpp \
+                    --function-name hello \
                     --build
 ```
-This command will create a new Docker image in your system with the following name: `secureexecutor-lambda-${language}-${static_or_dynamic}-${lambda-name}`.
+This command will create a new Docker image in your system with the following name: `secureexecutor-lambda-${language}-${function-name}`.
 ```tex
 > nuc@nuc: docker image ls            
 REPOSITORY                              TAG     IMAGE ID      CREATED        SIZE
@@ -55,8 +57,9 @@ secureexecutor-lambda-cpp-static-hello  latest  a87519e0a5dc  4 minutes ago  2.7
 
 3. As long as the docker image exists, we can also run the container.
 ```bash
-./SecureExecutor    --cpp \
-                    --lambda-name hello \
+./SecureExecutor    --lambda \
+                    --cpp \
+                    --function-name hello \
                     --run
 ```
 
@@ -64,8 +67,9 @@ If you want to pass a specific event or context to the lambda, you can use the `
 
 
 ```bash
-./SecureExecutor    --cpp \
-                    --lambda-name calc \
+./SecureExecutor    --lambda \
+                    --cpp \
+                    --function-name calc \
                     -e LAMBDA_EVENT=$(echo '{"type": "sum"}' | base64) \
                     -e LAMBDA_CONTEXT=$(echo '{"var_a": "10", "var_b": "20"}' | base64) \
                     --run
@@ -74,14 +78,15 @@ If you want to pass a specific event or context to the lambda, you can use the `
 
 4. When done, you can clean the generated image like this
 ```bash
-./SecureExecutor    --cpp \
-                    --lambda-name hello \
+./SecureExecutor    --lambda \
+                    --cpp \
+                    --function-name hello \
                     --clean
 ```
 
 Note: You can also run all in a single command
 ```bash
-./SecureExecutor --cpp --lambda-name hello --build --run --clean
+./SecureExecutor --lambda --cpp --function-name hello --build --run --clean
 ```
 
 ## Build and run a Rust/Python Demo project

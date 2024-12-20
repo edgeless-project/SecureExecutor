@@ -62,7 +62,8 @@ function help_menu(){
     echo "      --app                           Use this to build from a Dockerfile"
     echo "      --edgeless-node                 Use the edgeless node as target"
     echo "      --edgeless-function             Use this to build an edgeless-function"
-    echo "      --edgeless-system               Use as a target the whole edgeless system"
+    # TODO: before re-enabling this feature, test it
+    #echo "      --edgeless-system               Use as a target the whole edgeless system"
     echo 
     echo "      --cpp                           Use a cpp function as target (requires --lambda)"
     echo "      --python                        Use a python function as target (requires --lambda/--edgeless-function)"
@@ -105,7 +106,7 @@ do
              --lambda)                  TARGET="lambda"                         ;;
              --edgeless-node)           TARGET="edgeless-node"                  ;;
              --edgeless-function)       TARGET="edgeless-function"              ;;
-             --edgeless-system)         TARGET="edgeless-system"                ;;
+             #--edgeless-system)         TARGET="edgeless-system"                ;;
 
              --python)                  TARGET_LANG="python"                    ;;
              --cpp)                     TARGET_LANG="cpp"                       ;;
@@ -134,7 +135,7 @@ done
 # 1. If we have all needed parameters based on the given target, etc.
 # Otherwise, print an error message and exit
 if [ -z $TARGET ];  then 
-    echo_r " [ERROR] 'target' cannot be empty! Select one of them (--lambda | --app | --edgeless-node | --edgeless-system | --edgeless-function)'" ; exit 1 ;
+    echo_r " [ERROR] 'target' cannot be empty! Select one of them (--lambda | --app | --edgeless-node  | --edgeless-function)'" ; exit 1 ;
 elif [ $TARGET == "lambda" ]; then 
     [ -z "$FUNCTION_NAME" ] && echo_r " [ERROR] 'function name' (-f | --function-name) cannot be empty!" && exit 1
     [ -z "$TARGET_LANG" ] && echo_r " [ERROR] 'target language' (--cpp | --rust | --python) cannot be empty!" && exit 1

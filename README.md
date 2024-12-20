@@ -33,8 +33,7 @@ Options:
       --lambda                        Use this to build a lambda function                                                                                                                    
       --app                           Use this to build from a Dockerfile                                                                                                                    
       --edgeless-node                 Use the edgeless node as target                                                                                                                        
-      --edgeless-function             Use this to build an edgeless-function                                                                                                                 
-      --edgeless-system               Use as a target the whole edgeless system                                                                                                              
+      --edgeless-function             Use this to build an edgeless-function                                                                                                                                                                                                                         
                                                                                                                                                                                              
       --cpp                           Use a cpp function as target (requires --lambda)                                                                                                       
       --python                        Use a python function as target (requires --lambda/--edgeless-function)                                                                                
@@ -63,6 +62,8 @@ To understand how to create and run a lambda function, please read [this](./doc/
 
 ## Applications
 For more information regarding the applications that $SecureExecutor$ has been tested on so far, please refer to [this](./doc/applications.md) file.
+* Specifically to `EDGELESS` execute [edgeless_node in TEE](./doc/applications.md#edgeless)
+* Specifically to `EDGELESS` execute [function using containers and (Rust/Python API) in TEE](./doc/edgeless-function.md)
 
 ### Demos
 - EDGELESS: This [demo](https://www.youtube.com/watch?v=Fp0HqZN3FmY) video showcases the creation of the trusted binary for the EDGELESS node using $SecureExecutor$, followed by the execution of a function on the node within the EDGELESS platform.
@@ -87,7 +88,8 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 - Encryption during transfer: To ensure end-to-end secure execution, encryption should also be enabled during the transmission of data from the client to the enclave.
 
-- Evaluate the system while running different workflows that contain diverse functions (currently in progress).
+- ~~Evaluate the system while running different workflows that contain diverse functions.~~
+ Read [EDGELESS examples tested section](./doc/edgeless.md#examples-started-when-edgeless_node-executed-in-tee) to gain more information.
 
 ## Publication
 [Zenodo](https://zenodo.org/records/13986642) | [IEEE Xplore](https://ieeexplore.ieee.org/document/10679349)

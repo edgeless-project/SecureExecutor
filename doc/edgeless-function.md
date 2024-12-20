@@ -15,7 +15,7 @@ After executing the above command, the function sources become available inside 
 
 4. Since we now have the trusted image ready, we can create a `workflow.json` file (as per the EDGELESS documentation) to utilize the function.
 
-5. To run our function from an EDGELESS node and leverage SGX capabilities, ensure that an updated version of the EDGELESS platform code is available in the system (after commit #4a7dd6c)
+5. To run our function from an EDGELESS node and leverage SGX capabilities, ensure that an updated version of the EDGELESS platform code is available in the system (after commit [#7bdb18](https://github.com/edgeless-project/edgeless/commit/7bdb1849cbe56f0d4e8950595d7dbc07a22f41ba))
 
 6. Execution
 
